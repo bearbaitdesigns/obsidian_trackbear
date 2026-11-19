@@ -1,8 +1,10 @@
 name: Release
 
-# Two ways to release:
-#  1. Push a tag that matches manifest.json's version (e.g. `1.1.0`, no "v").
-#  2. Actions tab → Release → Run workflow. Leave "version" blank to use the
+# Three ways to release:
+#  1. Bump the version in manifest.json and push to main. If that version has
+#     no release yet, it's tagged and released automatically.
+#  2. Push a tag that matches manifest.json's version (e.g. `1.1.0`, no "v").
+#  3. Actions tab → Release → Run workflow. Leave "version" blank to use the
 #     version in manifest.json; the tag is created automatically if missing.
 # Either way the release gets main.js, manifest.json, styles.css (what Obsidian
 # and BRAT need) plus a zip of the three.
@@ -10,6 +12,10 @@ on:
   push:
     tags:
       - "*"
+    branches:
+      - main
+    paths:
+      - manifest.json
   workflow_dispatch:
     inputs:
       version:
@@ -29,10 +35,20 @@ jobs:
 
       - name: Work out version
         id: v
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           MANIFEST=$(node -p "require('./manifest.json').version")
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.ref_type }}" = "tag" ]; then
             TAG="${{ github.ref_name }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # manifest.json changed on main: release its version if it's new
+            TAG="$MANIFEST"
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Release $TAG already exists; nothing to do."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           else
             TAG="${{ github.event.inputs.version }}"
             TAG="${TAG:-$MANIFEST}"
@@ -50,23 +66,28 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip != 'true'
         with:
           node-version: 20
 
       - name: Install dependencies
+        if: steps.v.outputs.skip != 'true'
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
       - name: Build
+        if: steps.v.outputs.skip != 'true'
         run: npm run build
 
       - name: Package
+        if: steps.v.outputs.skip != 'true'
         run: |
           mkdir -p trackbear-stats
           cp main.js manifest.json styles.css trackbear-stats/
           zip -r "trackbear-stats-${{ steps.v.outputs.tag }}.zip" trackbear-stats
 
       - name: Publish release
+        if: steps.v.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.v.outputs.tag }}

@@ -103,8 +103,10 @@ Releases are built by GitHub Actions (`.github/workflows/release.yml`):
 
 ```bash
 npm version minor        # bumps package.json, manifest.json and versions.json, commits, and tags e.g. 1.1.0
-git push --follow-tags   # pushing the tag triggers the Release workflow
+git push --follow-tags   # pushing triggers the Release workflow
 ```
+
+Pushing a new version in `manifest.json` to `main` is enough by itself: if that version has no release yet, the workflow tags and releases it. A tag push works too.
 
 Or, without pushing a tag: go to **Actions → Release → Run workflow**. Leave the version blank to release the version in `manifest.json`; the workflow creates the tag for you.
 
