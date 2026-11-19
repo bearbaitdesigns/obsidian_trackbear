@@ -1,5 +1,5 @@
 import { requestUrl } from 'obsidian';
-import { fmtDate } from './compute';
+import { isBoardEnded } from './render';
 import type {
   ApiPayload, BoardWithStandings, DayCount, Goal, Leaderboard, Measure,
   Participant, Participation, Project, Tally, TallyCreatePayload, TrackBearData,
@@ -75,8 +75,7 @@ export class TrackBearApi {
 
     // starred boards first, then most recently started
     // a board is complete once its end date has passed; boards without one never end
-    const today = fmtDate(new Date());
-    const visible = hideEndedBoards ? boards.filter(b => !b.endDate || b.endDate >= today) : boards;
+    const visible = hideEndedBoards ? boards.filter(b => !isBoardEnded(b)) : boards;
     const sorted = [...visible].sort((a, b) =>
       Number(b.starred) - Number(a.starred) || (b.startDate ?? '').localeCompare(a.startDate ?? ''));
     const chosen = sorted.slice(0, Math.max(0, maxBoards));

@@ -1,7 +1,7 @@
 import { MarkdownRenderChild, Notice, Plugin, TFile } from 'obsidian';
 import { TrackBearApi } from './src/api';
 import { fmtCount, overallStats } from './src/compute';
-import { ALL_SECTIONS, pickMeasure, renderDashboard, type Section } from './src/render';
+import { ALL_SECTIONS, optionsFromSettings, pickMeasure, renderDashboard, type Section } from './src/render';
 import { DEFAULT_SETTINGS, TrackBearSettingTab, type TrackBearSettings } from './src/settings';
 import type { Measure, TrackBearData } from './src/types';
 import { TrackBearView, VIEW_TYPE_TRACKBEAR } from './src/view';
@@ -216,6 +216,18 @@ export default class TrackBearPlugin extends Plugin {
     const saved = (await this.loadData()) ?? {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
     this.settings.baselines = { ...(saved.baselines ?? {}) };
+
+    // v1 -> v2: completed leaderboards hidden and finished projects shown by default.
+    // Saved v1 settings store the old defaults, so apply the new ones once.
+    if((saved.settingsVersion ?? 1) < 2) {
+      const legacy = saved as { showInactiveProjects?: boolean };
+      this.settings.hideEndedLeaderboards = true;
+      this.settings.showFinishedProjects = true;
+      this.settings.showAbandonedProjects = legacy.showInactiveProjects ?? false;
+      delete (this.settings as unknown as Record<string, unknown>).showInactiveProjects;
+      this.settings.settingsVersion = 2;
+      if(Object.keys(saved).length) await this.saveSettings();
+    }
   }
 
   async saveSettings() {
@@ -262,13 +274,6 @@ class TrackBearBlock extends MarkdownRenderChild {
     if(!p.settings.apiKey) { el.createDiv({ cls: 'tb-empty', text: 'TrackBear: add your API key in settings.' }); return; }
     if(p.error) el.createDiv({ cls: 'tb-error', text: p.error });
     if(!p.data) { el.createDiv({ cls: 'tb-empty', text: 'Loading TrackBear stats…' }); return; }
-    renderDashboard(el, p.data, {
-      sections: this.sections,
-      measure: this.measure ?? p.settings.measure,
-      weekStartsOn: p.settings.weekStartsOn,
-      heatmapWeeks: p.settings.heatmapWeeks,
-      showInactiveProjects: p.settings.showInactiveProjects,
-      baseUrl: p.settings.baseUrl,
-    });
+    renderDashboard(el, p.data, optionsFromSettings(p.settings, this.sections, this.measure));
   }
 }

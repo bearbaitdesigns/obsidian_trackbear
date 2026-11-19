@@ -12,8 +12,11 @@ export interface TrackBearSettings {
   weekStartsOn: number;
   heatmapWeeks: number;
   maxLeaderboards: number;
-  showInactiveProjects: boolean;
+  showFinishedProjects: boolean;
+  showAbandonedProjects: boolean;
   hideEndedLeaderboards: boolean;
+  /** bumped when defaults change in a way existing installs should pick up */
+  settingsVersion: number;
   showStatusBar: boolean;
   // logging from the vault
   projectProperty: string;
@@ -34,8 +37,10 @@ export const DEFAULT_SETTINGS: TrackBearSettings = {
   weekStartsOn: 0,
   heatmapWeeks: 20,
   maxLeaderboards: 5,
-  showInactiveProjects: false,
-  hideEndedLeaderboards: false,
+  showFinishedProjects: true,
+  showAbandonedProjects: false,
+  hideEndedLeaderboards: true,
+  settingsVersion: 2,
   showStatusBar: true,
   projectProperty: 'trackbear',
   autoSyncMinutes: 0,
@@ -129,12 +134,17 @@ export class TrackBearSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Hide completed leaderboards')
-      .setDesc('Hide boards whose end date has passed. Boards without an end date always show.')
+      .setDesc('Hide boards whose end date has passed, like TrackBear\'s "Finished leaderboards" list. Boards without an end date always show.')
       .addToggle(t => t.setValue(s.hideEndedLeaderboards).onChange(async v => { s.hideEndedLeaderboards = v; await save(true); }));
 
     new Setting(containerEl)
-      .setName('Show finished and abandoned projects')
-      .addToggle(t => t.setValue(s.showInactiveProjects).onChange(async v => { s.showInactiveProjects = v; await save(); }));
+      .setName('Show finished projects')
+      .setDesc('Projects marked Finished on TrackBear. They\'re listed after your active projects.')
+      .addToggle(t => t.setValue(s.showFinishedProjects).onChange(async v => { s.showFinishedProjects = v; await save(); }));
+
+    new Setting(containerEl)
+      .setName('Show abandoned projects')
+      .addToggle(t => t.setValue(s.showAbandonedProjects).onChange(async v => { s.showAbandonedProjects = v; await save(); }));
 
     new Setting(containerEl)
       .setName('Show today\'s count in the status bar')

@@ -8,7 +8,7 @@ By [bearbaitdesigns](https://github.com/bearbaitdesigns).
 
 - **Sidebar panel** with tabs for All, Stats, Projects, Goals, and Boards. Open it from the paw-print ribbon icon or with the command **TrackBear Stats: Open stats panel**.
 - **Stats**: today, this week, this month, all time, current and longest daily streak, 30-day average, best day, and a heatmap of recent weeks.
-- **Projects**: your active projects (starred projects first) with their phase, totals for each measure, and when you last logged progress.
+- **Projects**: your active projects, then finished ones (starred first within each), with their phase, totals for each measure, and when you last logged progress.
 - **Goals**:
   - Target goals show a progress bar, days left, and how much you need per day to finish.
   - Habit goals show your current and longest streak and a strip of recent periods. Streaks are counted the same way TrackBear counts them.
@@ -73,8 +73,9 @@ The key is saved in `.obsidian/plugins/trackbear-stats/data.json` inside your va
 | Week starts on | Sunday | Set this to match your TrackBear setting. The API key can't read your TrackBear preferences, so this has to be set here. |
 | Heatmap weeks | 20 | 4–52 |
 | Leaderboards to show | 5 | Each board adds 2 requests per refresh. |
-| Hide completed leaderboards | Off | Hides boards whose end date has passed. They also stop counting toward "Leaderboards to show". |
-| Show finished/abandoned projects | Off | |
+| Hide completed leaderboards | On | Hides boards whose end date has passed (TrackBear's "Finished leaderboards"). They also stop counting toward "Leaderboards to show". |
+| Show finished projects | On | Listed after your active projects. |
+| Show abandoned projects | Off | |
 | Status bar | On | |
 | Server URL | https://trackbear.app | Change this only if you self-host TrackBear. |
 | Project property | `trackbear` | The frontmatter property that links a note to a project. |

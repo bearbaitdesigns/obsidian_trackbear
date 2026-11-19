@@ -1,6 +1,6 @@
 import { ItemView, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type TrackBearPlugin from '../main';
-import { ALL_SECTIONS, renderDashboard, type Section } from './render';
+import { ALL_SECTIONS, optionsFromSettings, renderDashboard, type Section } from './render';
 
 export const VIEW_TYPE_TRACKBEAR = 'trackbear-stats-view';
 
@@ -87,13 +87,6 @@ export class TrackBearView extends ItemView {
       return;
     }
 
-    renderDashboard(body, this.plugin.data, {
-      sections: this.tab === 'all' ? ALL_SECTIONS : [this.tab],
-      measure: s.measure,
-      weekStartsOn: s.weekStartsOn,
-      heatmapWeeks: s.heatmapWeeks,
-      showInactiveProjects: s.showInactiveProjects,
-      baseUrl: s.baseUrl,
-    });
+    renderDashboard(body, this.plugin.data, optionsFromSettings(s, this.tab === 'all' ? ALL_SECTIONS : [this.tab]));
   }
 }

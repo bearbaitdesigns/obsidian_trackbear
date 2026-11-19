@@ -1,7 +1,7 @@
 import { setIcon } from 'obsidian';
 import type { Measure, TrackBearData } from './types';
 import {
-  cadenceLabel, fmtCount, goalProgress, heatmapCells, level, MEASURE_LABEL,
+  cadenceLabel, fmtCount, fmtDate, goalProgress, heatmapCells, level, MEASURE_LABEL,
   overallStats, relativeDay, usedMeasures,
 } from './compute';
 
@@ -13,11 +13,33 @@ export interface RenderOptions {
   measure: Measure | 'auto';
   weekStartsOn: number;
   heatmapWeeks: number;
-  showInactiveProjects: boolean;
+  showFinishedProjects: boolean;
+  showAbandonedProjects: boolean;
+  hideEndedLeaderboards: boolean;
   baseUrl: string;
 }
 
-const INACTIVE_PHASES = new Set(['finished', 'abandoned']);
+/** The render options a set of plugin settings implies. */
+export function optionsFromSettings(s: {
+  measure: Measure | 'auto'; weekStartsOn: number; heatmapWeeks: number; baseUrl: string;
+  showFinishedProjects: boolean; showAbandonedProjects: boolean; hideEndedLeaderboards: boolean;
+}, sections: Section[], measure?: Measure | 'auto' | null): RenderOptions {
+  return {
+    sections,
+    measure: measure ?? s.measure,
+    weekStartsOn: s.weekStartsOn,
+    heatmapWeeks: s.heatmapWeeks,
+    baseUrl: s.baseUrl,
+    showFinishedProjects: s.showFinishedProjects,
+    showAbandonedProjects: s.showAbandonedProjects,
+    hideEndedLeaderboards: s.hideEndedLeaderboards,
+  };
+}
+
+/** Same rule TrackBear's own leaderboard list uses for "Finished leaderboards". */
+export function isBoardEnded(b: { endDate: string | null }, today = fmtDate(new Date())): boolean {
+  return b.endDate !== null && b.endDate !== '' && b.endDate < today;
+}
 
 function link(parent: HTMLElement, text: string, href: string, cls?: string) {
   const a = parent.createEl('a', { text, href, cls });
@@ -53,7 +75,7 @@ export function renderDashboard(el: HTMLElement, data: TrackBearData, opts: Rend
     if(s === 'stats') renderStats(sec, data, opts, base);
     if(s === 'projects') renderProjects(sec, data, opts, base);
     if(s === 'goals') renderGoals(sec, data, opts, base);
-    if(s === 'leaderboards') renderBoards(sec, data, base);
+    if(s === 'leaderboards') renderBoards(sec, data, opts, base);
   }
 }
 
@@ -93,9 +115,12 @@ function renderStats(sec: HTMLElement, data: TrackBearData, opts: RenderOptions,
 
 function renderProjects(sec: HTMLElement, data: TrackBearData, opts: RenderOptions, base: string) {
   sectionHeader(sec, 'Projects', 'book-open', `${base}/projects`);
+  const rank = (phase: string) => phase === 'finished' ? 1 : phase === 'abandoned' ? 2 : 0;
   const projects = data.projects
-    .filter(p => opts.showInactiveProjects || !INACTIVE_PHASES.has(p.phase))
-    .sort((a, b) => Number(b.starred) - Number(a.starred) || (b.lastUpdated ?? '').localeCompare(a.lastUpdated ?? ''));
+    .filter(p => (p.phase !== 'finished' || opts.showFinishedProjects) && (p.phase !== 'abandoned' || opts.showAbandonedProjects))
+    // active first, then finished, then abandoned; starred and most recent first within each
+    .sort((a, b) => rank(a.phase) - rank(b.phase) || Number(b.starred) - Number(a.starred) ||
+      (b.lastUpdated ?? '').localeCompare(a.lastUpdated ?? ''));
 
   if(projects.length === 0) {
     sec.createDiv({ cls: 'tb-empty', text: 'No current projects. Start one on TrackBear.' });
@@ -168,16 +193,18 @@ function renderGoals(sec: HTMLElement, data: TrackBearData, opts: RenderOptions,
 
 // ---------- leaderboards ----------
 
-function renderBoards(sec: HTMLElement, data: TrackBearData, base: string) {
+function renderBoards(sec: HTMLElement, data: TrackBearData, opts: RenderOptions, base: string) {
   sectionHeader(sec, 'Leaderboards', 'trophy', `${base}/leaderboards`);
-  if(data.boards.length === 0) {
-    const hidden = data.hiddenBoards ?? 0;
+  // filter here too, so the setting applies instantly even to data fetched before it changed
+  const boards = opts.hideEndedLeaderboards ? data.boards.filter(b => !isBoardEnded(b.board)) : data.boards;
+  if(boards.length === 0) {
+    const hidden = (data.hiddenBoards ?? 0) + (data.boards.length - boards.length);
     sec.createDiv({ cls: 'tb-empty', text: hidden
       ? `No active leaderboards. ${hidden} completed ${hidden === 1 ? 'board is' : 'boards are'} hidden.`
       : 'You are not on any leaderboards.' });
     return;
   }
-  for(const b of data.boards) {
+  for(const b of boards) {
     const item = sec.createDiv({ cls: 'tb-item' });
     const row = item.createDiv({ cls: 'tb-row' });
     const title = row.createDiv({ cls: 'tb-item-title' });

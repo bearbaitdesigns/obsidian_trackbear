@@ -1,6 +1,6 @@
 {
   "name": "obsidian-trackbear-stats",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Obsidian plugin for TrackBear: view your projects, goals, leaderboards and stats, and log word counts from your vault.",
   "main": "main.js",
   "scripts": {
