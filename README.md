@@ -105,7 +105,9 @@ npm version minor        # bumps package.json, manifest.json and versions.json, 
 git push --follow-tags   # pushing the tag triggers the Release workflow
 ```
 
-The workflow checks that the tag matches `manifest.json`, runs the build, and publishes a GitHub release with `main.js`, `manifest.json`, `styles.css`, and a zip of all three. You can also re-run it for an existing tag from the Actions tab (**Release → Run workflow**).
+Or, without pushing a tag: go to **Actions → Release → Run workflow**. Leave the version blank to release the version in `manifest.json`; the workflow creates the tag for you.
+
+The workflow checks that the version matches `manifest.json`, runs the build, and publishes a GitHub release with `main.js`, `manifest.json`, `styles.css`, and a zip of all three. Running it again for a version that already has a release replaces that release's files.
 
 ## How it works
 

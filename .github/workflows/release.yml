@@ -1,17 +1,20 @@
 name: Release
 
-# Push a tag that matches the version in manifest.json (e.g. `1.1.0`, no "v")
-# and this workflow builds the plugin and publishes a GitHub release with the
-# files Obsidian (and BRAT) need: main.js, manifest.json, styles.css.
+# Two ways to release:
+#  1. Push a tag that matches manifest.json's version (e.g. `1.1.0`, no "v").
+#  2. Actions tab → Release → Run workflow. Leave "version" blank to use the
+#     version in manifest.json; the tag is created automatically if missing.
+# Either way the release gets main.js, manifest.json, styles.css (what Obsidian
+# and BRAT need) plus a zip of the three.
 on:
   push:
     tags:
       - "*"
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Existing tag to (re)build a release for"
-        required: true
+      version:
+        description: "Version to release (blank = manifest.json version)"
+        required: false
 
 permissions:
   contents: write
@@ -19,12 +22,32 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      - name: Work out version
+        id: v
+        run: |
+          MANIFEST=$(node -p "require('./manifest.json').version")
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ github.event.inputs.version }}"
+            TAG="${TAG:-$MANIFEST}"
+            # releasing an existing tag: build exactly what it points at
+            if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              git checkout -q "refs/tags/$TAG"
+              MANIFEST=$(node -p "require('./manifest.json').version")
+            fi
+          fi
+          if [ "$MANIFEST" != "$TAG" ]; then
+            echo "::error::Version $TAG does not match manifest.json version $MANIFEST"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
@@ -34,14 +57,6 @@ jobs:
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-      - name: Check tag matches manifest version
-        run: |
-          VERSION=$(node -p "require('./manifest.json').version")
-          if [ "$VERSION" != "$TAG" ]; then
-            echo "::error::Tag $TAG does not match manifest.json version $VERSION"
-            exit 1
-          fi
-
       - name: Build
         run: npm run build
 
@@ -49,15 +64,18 @@ jobs:
         run: |
           mkdir -p trackbear-stats
           cp main.js manifest.json styles.css trackbear-stats/
-          zip -r "trackbear-stats-$TAG.zip" trackbear-stats
+          zip -r "trackbear-stats-${{ steps.v.outputs.tag }}.zip" trackbear-stats
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.v.outputs.tag }}
+          SHA: ${{ steps.v.outputs.sha }}
         run: |
+          FILES="main.js manifest.json styles.css trackbear-stats-$TAG.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" main.js manifest.json styles.css "trackbear-stats-$TAG.zip" --clobber
+            gh release upload "$TAG" $FILES --clobber
           else
-            gh release create "$TAG" main.js manifest.json styles.css "trackbear-stats-$TAG.zip" \
-              --title "$TAG" --generate-notes
+            # --target creates the tag at this commit if it doesn't exist yet
+            gh release create "$TAG" $FILES --target "$SHA" --title "$TAG" --generate-notes
           fi
