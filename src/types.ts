@@ -115,4 +115,6 @@ export interface TrackBearData {
   tallies: Tally[];
   days: DayCount[];
   boards: BoardWithStandings[];
+  /** completed boards left out because of the "hide completed" setting */
+  hiddenBoards: number;
 }

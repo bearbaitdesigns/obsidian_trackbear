@@ -171,7 +171,10 @@ function renderGoals(sec: HTMLElement, data: TrackBearData, opts: RenderOptions,
 function renderBoards(sec: HTMLElement, data: TrackBearData, base: string) {
   sectionHeader(sec, 'Leaderboards', 'trophy', `${base}/leaderboards`);
   if(data.boards.length === 0) {
-    sec.createDiv({ cls: 'tb-empty', text: 'You are not on any leaderboards.' });
+    const hidden = data.hiddenBoards ?? 0;
+    sec.createDiv({ cls: 'tb-empty', text: hidden
+      ? `No active leaderboards. ${hidden} completed ${hidden === 1 ? 'board is' : 'boards are'} hidden.`
+      : 'You are not on any leaderboards.' });
     return;
   }
   for(const b of data.boards) {

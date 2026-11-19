@@ -1,4 +1,5 @@
 import { requestUrl } from 'obsidian';
+import { fmtDate } from './compute';
 import type {
   ApiPayload, BoardWithStandings, DayCount, Goal, Leaderboard, Measure,
   Participant, Participation, Project, Tally, TallyCreatePayload, TrackBearData,
@@ -67,13 +68,16 @@ export class TrackBearApi {
   participants(uuid: string) { return this.get<Participant[]>(`/leaderboard/${encodeURIComponent(uuid)}/participants`); }
   myParticipation(uuid: string) { return this.get<Participation | null>(`/leaderboard/${encodeURIComponent(uuid)}/me`); }
 
-  async fetchAll(maxBoards: number): Promise<TrackBearData> {
+  async fetchAll(maxBoards: number, hideEndedBoards = false): Promise<TrackBearData> {
     const [projects, goals, tallies, days, boards] = await Promise.all([
       this.projects(), this.goals(), this.tallies(), this.days(), this.leaderboards(),
     ]);
 
     // starred boards first, then most recently started
-    const sorted = [...boards].sort((a, b) =>
+    // a board is complete once its end date has passed; boards without one never end
+    const today = fmtDate(new Date());
+    const visible = hideEndedBoards ? boards.filter(b => !b.endDate || b.endDate >= today) : boards;
+    const sorted = [...visible].sort((a, b) =>
       Number(b.starred) - Number(a.starred) || (b.startDate ?? '').localeCompare(a.startDate ?? ''));
     const chosen = sorted.slice(0, Math.max(0, maxBoards));
 
@@ -82,7 +86,7 @@ export class TrackBearApi {
       withStandings.push(await this.boardStandings(board));
     }
 
-    return { fetchedAt: Date.now(), projects, goals, tallies, days, boards: withStandings };
+    return { fetchedAt: Date.now(), projects, goals, tallies, days, boards: withStandings, hiddenBoards: boards.length - visible.length };
   }
 
   private async boardStandings(board: Leaderboard): Promise<BoardWithStandings> {

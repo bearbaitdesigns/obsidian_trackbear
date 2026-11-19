@@ -13,6 +13,7 @@ export interface TrackBearSettings {
   heatmapWeeks: number;
   maxLeaderboards: number;
   showInactiveProjects: boolean;
+  hideEndedLeaderboards: boolean;
   showStatusBar: boolean;
   // logging from the vault
   projectProperty: string;
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: TrackBearSettings = {
   heatmapWeeks: 20,
   maxLeaderboards: 5,
   showInactiveProjects: false,
+  hideEndedLeaderboards: false,
   showStatusBar: true,
   projectProperty: 'trackbear',
   autoSyncMinutes: 0,
@@ -124,6 +126,11 @@ export class TrackBearSettingTab extends PluginSettingTab {
       .setDesc('Starred boards come first. Each board is one extra request per refresh.')
       .addSlider(sl => sl.setLimits(0, 20, 1).setValue(s.maxLeaderboards).setDynamicTooltip()
         .onChange(async v => { s.maxLeaderboards = v; await this.plugin.saveSettings(); }));
+
+    new Setting(containerEl)
+      .setName('Hide completed leaderboards')
+      .setDesc('Hide boards whose end date has passed. Boards without an end date always show.')
+      .addToggle(t => t.setValue(s.hideEndedLeaderboards).onChange(async v => { s.hideEndedLeaderboards = v; await save(true); }));
 
     new Setting(containerEl)
       .setName('Show finished and abandoned projects')

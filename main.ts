@@ -157,7 +157,7 @@ export default class TrackBearPlugin extends Plugin {
     this.loading = true;
     this.notify();
     const api = new TrackBearApi(this.settings.baseUrl, this.settings.apiKey);
-    this.inflight = api.fetchAll(this.settings.maxLeaderboards)
+    this.inflight = api.fetchAll(this.settings.maxLeaderboards, this.settings.hideEndedLeaderboards)
       .then(d => { this.data = d; this.error = null; })
       .catch(err => { this.error = (err as Error).message; console.error('TrackBear', err); })
       .finally(() => { this.loading = false; this.inflight = null; this.notify(); });

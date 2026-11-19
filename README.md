@@ -73,6 +73,7 @@ The key is saved in `.obsidian/plugins/trackbear-stats/data.json` inside your va
 | Week starts on | Sunday | Set this to match your TrackBear setting. The API key can't read your TrackBear preferences, so this has to be set here. |
 | Heatmap weeks | 20 | 4–52 |
 | Leaderboards to show | 5 | Each board adds 2 requests per refresh. |
+| Hide completed leaderboards | Off | Hides boards whose end date has passed. They also stop counting toward "Leaderboards to show". |
 | Show finished/abandoned projects | Off | |
 | Status bar | On | |
 | Server URL | https://trackbear.app | Change this only if you self-host TrackBear. |
