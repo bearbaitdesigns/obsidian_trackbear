@@ -1,0 +1,10 @@
+{
+  "id": "trackbear-stats",
+  "name": "TrackBear Stats",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "See your TrackBear projects, goals, leaderboards and writing stats, and log word counts straight from your vault.",
+  "author": "bearbaitdesigns",
+  "isDesktopOnly": false,
+  "authorUrl": "https://github.com/bearbaitdesigns"
+}
